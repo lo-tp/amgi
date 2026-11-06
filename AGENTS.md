@@ -58,6 +58,18 @@ time this session, a build fails on signing or a run destination, tests report
 "not run", the watch or a package target needs its own build, or a preview
 fails to render.
 
+## Commits
+
+Documentation changes are saved by a dedicated commit: a `docs:` commit holds
+docs and nothing else, a code commit holds code and nothing else. Keeping the
+kinds apart is what makes a code-only PR a matter of dropping whole commits
+instead of splitting a diff. Subjects follow the Conventional Commits
+convention in `CONTRIBUTING.md`.
+
+Read `agents/commits-and-prs.md` when: a PR should carry code only, docs and
+code have already landed in one commit, or a flow produced notes you are not
+sure belong upstream.
+
 ## Swift rules everywhere
 
 The packages run Swift 6.2 with `InternalImportsByDefault`,
