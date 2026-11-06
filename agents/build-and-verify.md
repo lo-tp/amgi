@@ -51,6 +51,31 @@ Run the iOS suite **without** `CODE_SIGNING_ALLOWED=NO`. That flag makes
 `KeychainProfileScopingTests` fail with `saveFailed(-34018)`
 (`errSecMissingEntitlement`) — the flag, not the code.
 
+### No MCP connected
+
+`xcodebuild test` is the fallback, and it needs two things the Xcode UI supplies
+silently:
+
+```bash
+xcrun simctl list devices available            # then:
+xcodebuild test -project AmgiApp/AmgiApp.xcodeproj -scheme AmgiApp \
+  -destination 'platform=iOS Simulator,id=<UDID>' -skipMacroValidation
+```
+
+- **`-skipMacroValidation`, or nothing builds.** Without it the run dies at
+  `Macro “DependenciesMacrosPlugin” from package “swift-dependencies” must be
+  enabled before it can be used` — Xcode 26's macro-approval gate, which the UI
+  answers interactively and the CLI does not ask.
+- **Give the destination as an id.** `-destination 'platform=iOS Simulator,name=iPhone 16 Pro'`
+  failed with `Unable to find a device matching the provided destination specifier`
+  while listing that very device; the UDID resolved first time.
+
+A Swift Testing `recordIssue` from a detached task — this repo's `ReviewSessionTests`
+records `Unimplemented: 'NotetypesClient.get'` from `prepareCard`, on `main` as well as
+in a change — is reported as `✘ Test run … failed with N issues` while `xcodebuild`
+still exits 0. Read the actual `Expectation failed:` lines before believing either
+verdict.
+
 ## The watch builds separately
 
 The iOS scheme does not build `AmgiWatchApp`. Changes to `Sources/Watch/`, to
@@ -72,8 +97,14 @@ in `scripts/build-xcframework.sh`, not a regression.
 swift build --package-path AmgiFeatures --target <T> -j 6
 ```
 
-Useful for a fast type-check of a single feature module. Anything user-facing
-still goes through `build_sim` / `BuildProject`.
+Useful for a fast type-check of a single feature module — for targets that do not
+reach `AnkiBackend`, which is the same host-link limit as above: anything whose
+dependency graph reaches it stops at `no such module 'AnkiRustLib'`, and that
+includes `ReviewFeature` and `ReviewCore` through `AnkiServices`. Anything
+user-facing still goes through `build_sim` / `BuildProject`.
+
+It also rewrites that package's `Package.resolved`; `git checkout` it before
+committing.
 
 ## Clean, not incremental, for a module move
 
